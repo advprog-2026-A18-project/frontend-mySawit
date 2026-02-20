@@ -1,21 +1,16 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
 import api from '../../../api/axios'; 
 
 const Register = () => {
-  const navigate = useNavigate();
-  
-
   const [formData, setFormData] = useState({
-    username: '',
+    name: '',
     email: '',
-    password: ''
+    password: '',
+    role: 'Buruh' // Default value
   });
-
 
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
-
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -25,107 +20,121 @@ const Register = () => {
     }));
   };
 
-  // 4. Handler saat tombol Register diklik
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
     setMessage({ type: '', text: '' });
 
     try {
-
       const response = await api.post('/auth/register', formData);
       
+      const { name, email, role } = response.data;
 
-      setMessage({ type: 'success', text: 'Registrasi berhasil! Mengalihkan ke halaman login...' });
       
+      const successText = `Registrasi berhasil! Akun atas nama ${name} telah terdaftar sebagai ${role} dengan email ${email}.`;
 
-      setTimeout(() => {
-        navigate('/login');
-      }, 2000);
-
+      setMessage({ type: 'success', text: successText });
+      
     } catch (error) {
-
-      const errorMsg = error.response?.data?.message || 'Terjadi kesalahan saat menghubungi server.';
-      setMessage({ type: 'error', text: errorMsg });
+        console.log(error)
+        const errorMsg = error.response?.data?.message || 'Terjadi kesalahan saat menghubungi server.';
+        setMessage({ type: 'error', text: errorMsg });
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div style={{ maxWidth: '400px', margin: '50px auto', padding: '20px', border: '1px solid #ccc', borderRadius: '8px' }}>
-      <h2>Daftar Akun My Sawit</h2>
-      
+    <div style={{margin: 'auto'}}>
+        <div style={{ maxWidth: '400px', margin: '50px auto', padding: '20px', border: '1px solid #ccc', borderRadius: '8px', textAlign: 'center' }}>
+            <h2>Daftar Akun My Sawit</h2>
+            
+            {message.text && (
+                <div style={{ 
+                padding: '10px', 
+                marginBottom: '15px', 
+                backgroundColor: message.type === 'error' ? '#ffebee' : '#e8f5e9',
+                color: message.type === 'error' ? '#c62828' : '#2e7d32',
+                borderRadius: '4px',
+                lineHeight: '1.5' 
+                }}>
+                {message.text}
+                </div>
+            )}
 
-      {message.text && (
-        <div style={{ 
-          padding: '10px', 
-          marginBottom: '15px', 
-          backgroundColor: message.type === 'error' ? '#ffebee' : '#e8f5e9',
-          color: message.type === 'error' ? '#c62828' : '#2e7d32',
-          borderRadius: '4px'
-        }}>
-          {message.text}
+            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                <div>
+                <label style={{ display: 'block', marginBottom: '5px' }}>Nama Lengkap</label>
+                <input 
+                    type="text" 
+                    name="name" 
+                    value={formData.name} 
+                    onChange={handleChange} 
+                    required 
+                    style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }}
+                />
+                </div>
+
+                <div>
+                <label style={{ display: 'block', marginBottom: '5px' }}>Email</label>
+                <input 
+                    type="email" 
+                    name="email" 
+                    value={formData.email} 
+                    onChange={handleChange} 
+                    required 
+                    style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }}
+                />
+                </div>
+
+                <div>
+                <label style={{ display: 'block', marginBottom: '5px' }}>Password</label>
+                <input 
+                    type="password" 
+                    name="password" 
+                    value={formData.password} 
+                    onChange={handleChange} 
+                    required 
+                    style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }}
+                />
+                </div>
+
+                <div>
+                <label style={{ display: 'block', marginBottom: '5px' }}>Role Pekerjaan</label>
+                <select 
+                    name="role" 
+                    value={formData.role} 
+                    onChange={handleChange} 
+                    style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }}
+                >
+                    <option value="Buruh">Buruh</option>
+                    <option value="Mandor">Mandor</option>
+                    <option value="Manajer">Manajer</option>
+                </select>
+                </div>
+
+                <button 
+                type="submit" 
+                disabled={isLoading}
+                style={{ 
+                    padding: '10px', 
+                    backgroundColor: isLoading ? '#9e9e9e' : '#1976d2', 
+                    color: 'white', 
+                    border: 'none', 
+                    borderRadius: '4px',
+                    cursor: isLoading ? 'not-allowed' : 'pointer',
+                    marginTop: '10px'
+                }}
+                >
+                {isLoading ? 'Memproses...' : 'Daftar Sekarang'}
+                </button>
+            </form>
+
         </div>
-      )}
 
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-        <div>
-          <label style={{ display: 'block', marginBottom: '5px' }}>Username</label>
-          <input 
-            type="text" 
-            name="username" 
-            value={formData.username} 
-            onChange={handleChange} 
-            required 
-            style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }}
-          />
-        </div>
-
-        <div>
-          <label style={{ display: 'block', marginBottom: '5px' }}>Email</label>
-          <input 
-            type="email" 
-            name="email" 
-            value={formData.email} 
-            onChange={handleChange} 
-            required 
-            style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }}
-          />
-        </div>
-
-        <div>
-          <label style={{ display: 'block', marginBottom: '5px' }}>Password</label>
-          <input 
-            type="password" 
-            name="password" 
-            value={formData.password} 
-            onChange={handleChange} 
-            required 
-            style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }}
-          />
-        </div>
-
-        <button 
-          type="submit" 
-          disabled={isLoading}
-          style={{ 
-            padding: '10px', 
-            backgroundColor: isLoading ? '#9e9e9e' : '#1976d2', 
-            color: 'white', 
-            border: 'none', 
-            borderRadius: '4px',
-            cursor: isLoading ? 'not-allowed' : 'pointer'
-          }}
-        >
-          {isLoading ? 'Memproses...' : 'Daftar Sekarang'}
-        </button>
-      </form>
-
-      <p style={{ marginTop: '15px', textAlign: 'center', fontSize: '14px' }}>
-        Sudah punya akun? <Link to="/login" style={{ color: '#1976d2' }}>Login di sini</Link>
-      </p>
     </div>
+
+    
   );
 };
 
