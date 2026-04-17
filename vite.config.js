@@ -4,16 +4,20 @@ import process from 'node:process'
 
 export default defineConfig({
   plugins: [react()],
+
   server: {
     host: '0.0.0.0',
-    port: process.env.PORT ? parseInt(process.env.PORT) : 5173,
+    port: process.env.PORT ? Number(process.env.PORT) : 5173
   },
+
   preview: {
     host: '0.0.0.0',
-    port: process.env.PORT ? parseInt(process.env.PORT) : 5173,
+    port: process.env.PORT ? Number(process.env.PORT) : 4173,
     allowedHosts: [
-      'frontend-mysawit-production.up.railway.app',
-      '.railway.app'
+      '.railway.app',
+      '.up.railway.app',
+      '.herokuapp.com',
+      'localhost'
     ]
   }
 })
