@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
-import { getKebunDetail, assignMandor, unassignMandor, assignSupir, unassignSupir, getKebunList } from '../../../api/axios';
+import { getKebunDetail, assignMandor, unassignMandor, assignSupir, unassignSupir, getKebunList, getUserById, getUsers } from '../../../api/axios';
 
 // Helper function to display coordinates
 const getCoordDisplay = (koordinat) => {
@@ -42,7 +42,9 @@ const normalizeKebun = (data) => {
     luasHektare: rawData.luasHektare || rawData.luas || 0,
     koordinat: koordinat,
     mandorId: rawData.mandorId || rawData.mandor || null,
+    mandorName: rawData.namaMandor || rawData.mandorName || rawData.mandor_nama || null,
     supirIds: rawData.supirIds || rawData.supir || [],
+    supirNames: rawData.listSupir || rawData.supir_nama || [],
     createdAt: rawData.createdAt || rawData.created_at,
   };
 };
@@ -55,14 +57,21 @@ export default function KebunDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchSupirNama, setSearchSupirNama] = useState('');
+  const [mandorName, setMandorName] = useState('');
+  const [supirNames, setSupirNames] = useState({});
 
   // Modal states
   const [showMandorModal, setShowMandorModal] = useState(false);
   const [showSupirModal, setShowSupirModal] = useState(false);
+  const [showUnassignMandorModal, setShowUnassignMandorModal] = useState(false);
+  const [showUnassignSupirModal, setShowUnassignSupirModal] = useState(false);
   const [availableMandor, setAvailableMandor] = useState([]);
   const [availableSupir, setAvailableSupir] = useState([]);
+  const [otherKebun, setOtherKebun] = useState([]);
   const [selectedMandorId, setSelectedMandorId] = useState('');
   const [selectedSupirId, setSelectedSupirId] = useState('');
+  const [selectedTargetKebun, setSelectedTargetKebun] = useState('');
+  const [selectedSupirToUnassign, setSelectedSupirToUnassign] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   const fetchDetail = async () => {
@@ -71,7 +80,37 @@ export default function KebunDetail() {
       const params = {};
       if (searchSupirNama) params.searchSupirNama = searchSupirNama;
       const response = await getKebunDetail(kode, params);
-      setKebun(normalizeKebun(response.data));
+      console.log('Fetch detail response:', response.data);
+      const normalizedData = normalizeKebun(response.data);
+      console.log('Normalized data:', normalizedData);
+      setKebun(normalizedData);
+
+      // Use mandorName from backend if available
+      if (normalizedData.mandorName) {
+        setMandorName(normalizedData.mandorName);
+      } else if (normalizedData.mandorId) {
+        setMandorName(normalizedData.mandorId);
+      } else {
+        setMandorName('');
+      }
+
+      // Use supirNames from backend if available
+      if (normalizedData.supirNames && normalizedData.supirNames.length > 0) {
+        const namesMap = {};
+        normalizedData.supirIds.forEach((supirId, index) => {
+          namesMap[supirId] = normalizedData.supirNames[index] || supirId;
+        });
+        setSupirNames(namesMap);
+      } else if (normalizedData.supirIds && normalizedData.supirIds.length > 0) {
+        const namesMap = {};
+        normalizedData.supirIds.forEach((supirId) => {
+          namesMap[supirId] = supirId;
+        });
+        setSupirNames(namesMap);
+      } else {
+        setSupirNames({});
+      }
+
       setError(null);
     } catch (err) {
       setError('Failed to load kebun detail');
@@ -101,17 +140,21 @@ export default function KebunDetail() {
         .filter(k => k.mandorId && k.kodeKebun !== kode)
         .map(k => k.mandorId);
 
-      // For demo, we'll show a mock list. In real app, you'd have a mandor API
-      // Here we'll simulate by showing available mandor option
-      setAvailableMandor([
-        { id: 'mandor-1', nama: 'Budi Santoso' },
-        { id: 'mandor-2', nama: 'Ahmad Wijaya' },
-        { id: 'mandor-3', nama: 'Hendra Pratama' },
-      ].filter(m => !assignedMandorIds.includes(m.id)));
+      // Fetch all mandors from API
+      const mandorRes = await getUsers({ role: 'Mandor', size: 100 });
+      const allMandors = mandorRes.data?.data?.content || mandorRes.data?.data || [];
 
+      setAvailableMandor(allMandors.filter(m => !assignedMandorIds.includes(m.id)));
       setShowMandorModal(true);
     } catch (err) {
-      alert('Failed to load mandor data');
+      // Fallback ke mock data jika API gagal
+      console.error('Error loading mandor:', err);
+      setAvailableMandor([
+        { id: 'mandor-1', fullname: 'Budi Santoso', username: 'budi' },
+        { id: 'mandor-2', fullname: 'Ahmad Wijaya', username: 'ahmad' },
+        { id: 'mandor-3', fullname: 'Hendra Pratama', username: 'hendra' },
+      ]);
+      setShowMandorModal(true);
     }
   };
 
@@ -123,17 +166,32 @@ export default function KebunDetail() {
 
       const currentSupirIds = allKebun.find(k => k.kodeKebun === kode)?.supirIds || [];
 
-      // Mock data - in real app, you'd have supir API
-      setAvailableSupir([
-        { id: 'supir-1', nama: 'Soleh' },
-        { id: 'supir-2', nama: 'Joko' },
-        { id: 'supir-3', nama: 'Rudi' },
-        { id: 'supir-4', nama: 'Hadi' },
-      ].filter(s => !currentSupirIds.includes(s.id)));
+      // Fetch all supir (role: Buruh with supir capability or dedicated supir role)
+      const supirRes = await getUsers({ role: 'Buruh', size: 100 });
+      const allSupir = supirRes.data?.data?.content || supirRes.data?.data || [];
 
+      setAvailableSupir(allSupir.filter(s => !currentSupirIds.includes(s.id)));
       setShowSupirModal(true);
     } catch (err) {
-      alert('Failed to load supir data');
+      // Fallback ke mock data jika API gagal
+      console.error('Error loading supir:', err);
+      setAvailableSupir([
+        { id: 'supir-1', fullname: 'Soleh', username: 'soleh' },
+        { id: 'supir-2', fullname: 'Joko', username: 'joko' },
+        { id: 'supir-3', fullname: 'Rudi', username: 'rudi' },
+        { id: 'supir-4', fullname: 'Hadi', username: 'hadi' },
+      ]);
+      setShowSupirModal(true);
+    }
+  };
+
+  const fetchOtherKebun = async () => {
+    try {
+      const response = await getKebunList({});
+      const allKebun = response.data?.data || [];
+      setOtherKebun(allKebun.filter(k => k.kodeKebun !== kode));
+    } catch (err) {
+      console.error('Failed to load other kebun:', err);
     }
   };
 
@@ -151,11 +209,13 @@ export default function KebunDetail() {
     }
   };
 
-  const handleUnassignMandor = async (target) => {
-    if (!confirm(`Apakah Anda yakin ingin melepaskan mandor dari kebun ini${target ? ` dan dipindahkan ke ${target}` : ''}?`)) return;
+  const handleUnassignMandor = async () => {
+    if (!selectedTargetKebun) return;
     try {
       setSubmitting(true);
-      await unassignMandor(kode, target || undefined);
+      await unassignMandor(kode, selectedTargetKebun);
+      setShowUnassignMandorModal(false);
+      setSelectedTargetKebun('');
       fetchDetail();
     } catch (err) {
       alert(err.response?.data?.message || 'Failed to unassign mandor');
@@ -178,11 +238,14 @@ export default function KebunDetail() {
     }
   };
 
-  const handleUnassignSupir = async (supirId, target) => {
-    if (!confirm(`Apakah Anda yakin ingin melepaskan supir ini${target ? ` dan dipindahkan ke ${target}` : ''}?`)) return;
+  const handleUnassignSupir = async () => {
+    if (!selectedTargetKebun || !selectedSupirToUnassign) return;
     try {
       setSubmitting(true);
-      await unassignSupir(kode, supirId, target || undefined);
+      await unassignSupir(kode, selectedSupirToUnassign, selectedTargetKebun);
+      setShowUnassignSupirModal(false);
+      setSelectedTargetKebun('');
+      setSelectedSupirToUnassign('');
       fetchDetail();
     } catch (err) {
       alert(err.response?.data?.message || 'Failed to unassign supir');
@@ -267,19 +330,19 @@ export default function KebunDetail() {
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-lg font-semibold text-gray-800">Mandor</h2>
             <div className="flex gap-2">
-              <button
-                onClick={openMandorModal}
+              <Link
+                to={`/kebun/${kode}/assign/mandor`}
                 className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm"
               >
                 Assign Mandor
-              </button>
+              </Link>
               {kebun.mandorId && (
-                <button
-                  onClick={() => handleUnassignMandor('')}
+                <Link
+                  to={`/kebun/${kode}/move/mandor`}
                   className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm"
                 >
-                  Unassign
-                </button>
+                  Pindahkan
+                </Link>
               )}
             </div>
           </div>
@@ -288,7 +351,7 @@ export default function KebunDetail() {
               <svg className="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
               </svg>
-              <span className="font-medium text-green-800">Mandor Assigned (ID: {kebun.mandorId})</span>
+              <span className="font-medium text-green-800">Mandor: {mandorName}</span>
             </div>
           ) : (
             <div className="p-3 bg-gray-50 rounded-lg text-gray-500">Belum ada mandor assigned</div>
@@ -300,12 +363,12 @@ export default function KebunDetail() {
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-lg font-semibold text-gray-800">Daftar Supir ({kebun.supirIds?.length || 0})</h2>
             <div className="flex gap-2">
-              <button
-                onClick={openSupirModal}
+              <Link
+                to={`/kebun/${kode}/assign/supir`}
                 className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm"
               >
                 Tambah Supir
-              </button>
+              </Link>
             </div>
           </div>
 
@@ -327,13 +390,13 @@ export default function KebunDetail() {
             <div className="space-y-2">
               {kebun.supirIds.map((supirId) => (
                 <div key={supirId} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <span className="font-medium">Supir ID: {supirId}</span>
-                  <button
-                    onClick={() => handleUnassignSupir(supirId, '')}
+                  <span className="font-medium">Supir: {supirNames[supirId] || supirId}</span>
+                  <Link
+                    to={`/kebun/${kode}/move/supir/${supirId}`}
                     className="text-red-600 hover:text-red-800 text-sm"
                   >
-                    Hapus
-                  </button>
+                    Pindahkan
+                  </Link>
                 </div>
               ))}
             </div>
@@ -357,7 +420,7 @@ export default function KebunDetail() {
                 >
                   <option value="">Pilih Mandor</option>
                   {availableMandor.map((m) => (
-                    <option key={m.id} value={m.id}>{m.nama}</option>
+                    <option key={m.id} value={m.id}>{m.fullname || m.username}</option>
                   ))}
                 </select>
               )}
@@ -395,7 +458,7 @@ export default function KebunDetail() {
                 >
                   <option value="">Pilih Supir</option>
                   {availableSupir.map((s) => (
-                    <option key={s.id} value={s.id}>{s.nama}</option>
+                    <option key={s.id} value={s.id}>{s.fullname || s.username}</option>
                   ))}
                 </select>
               )}
@@ -412,6 +475,91 @@ export default function KebunDetail() {
                   className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
                 >
                   Tambah
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Unassign Mandor Modal */}
+        {showUnassignMandorModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-lg p-6 max-w-md w-full">
+              <h3 className="text-lg font-semibold mb-4">Pindahkan Mandor</h3>
+              <p className="text-gray-600 mb-4">Pilih kebun tujuan untuk mandor ini:</p>
+              {otherKebun.length === 0 ? (
+                <p className="text-gray-500">Tidak ada kebun lain tersedia</p>
+              ) : (
+                <select
+                  value={selectedTargetKebun}
+                  onChange={(e) => setSelectedTargetKebun(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg mb-4"
+                >
+                  <option value="">Pilih Kebun Tujuan</option>
+                  {otherKebun.map((k) => (
+                    <option key={k.kodeKebun} value={k.kodeKebun}>{k.namaKebun} ({k.kodeKebun})</option>
+                  ))}
+                </select>
+              )}
+              <div className="flex gap-2 justify-end">
+                <button
+                  onClick={() => {
+                    setShowUnassignMandorModal(false);
+                    setSelectedTargetKebun('');
+                  }}
+                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                >
+                  Batal
+                </button>
+                <button
+                  onClick={handleUnassignMandor}
+                  disabled={!selectedTargetKebun || submitting}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
+                >
+                  Pindahkan
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Unassign Supir Modal */}
+        {showUnassignSupirModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-lg p-6 max-w-md w-full">
+              <h3 className="text-lg font-semibold mb-4">Pindahkan Supir</h3>
+              <p className="text-gray-600 mb-4">Pilih kebun tujuan untuk supir ini:</p>
+              {otherKebun.length === 0 ? (
+                <p className="text-gray-500">Tidak ada kebun lain tersedia</p>
+              ) : (
+                <select
+                  value={selectedTargetKebun}
+                  onChange={(e) => setSelectedTargetKebun(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg mb-4"
+                >
+                  <option value="">Pilih Kebun Tujuan</option>
+                  {otherKebun.map((k) => (
+                    <option key={k.kodeKebun} value={k.kodeKebun}>{k.namaKebun} ({k.kodeKebun})</option>
+                  ))}
+                </select>
+              )}
+              <div className="flex gap-2 justify-end">
+                <button
+                  onClick={() => {
+                    setShowUnassignSupirModal(false);
+                    setSelectedTargetKebun('');
+                    setSelectedSupirToUnassign('');
+                  }}
+                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                >
+                  Batal
+                </button>
+                <button
+                  onClick={handleUnassignSupir}
+                  disabled={!selectedTargetKebun || submitting}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
+                >
+                  Pindahkan
                 </button>
               </div>
             </div>
