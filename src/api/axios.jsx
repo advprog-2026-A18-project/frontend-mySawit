@@ -1,11 +1,39 @@
 import axios from 'axios';
 
+
+const authApiBaseURL = import.meta.env.VITE_AUTH_API_BASE_URL || 'http://localhost:8081';
+
+const attachAccessToken = (config) => {
+  const token = localStorage.getItem('accessToken');
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  return config;
+};
+
 const api = axios.create({
   baseURL: 'http://localhost:8082/api',
   headers: {
     'Content-Type': 'application/json',
   },
 });
+
+const authApi = axios.create({
+  baseURL: authApiBaseURL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+})
+
+authApi.interceptors.request.use(attachAccessToken);
+
+// Auth API
+export const login = (payload) => authApi.post('/auth/login', payload);
+export const register = (payload) => authApi.post('/auth/register', payload);
+export const loginWithGoogle = (payload) => authApi.post('/auth/google', payload);
+export const refreshToken = (refreshTokenValue) =>
+  authApi.post('/auth/refresh', { refreshToken: refreshTokenValue });
+export const logout = (refreshTokenValue) =>
+  authApi.post('/auth/logout', { refreshToken: refreshTokenValue });
+
 
 // Kebun API
 export const getKebunList = (params) => api.get('/kebun', { params });
