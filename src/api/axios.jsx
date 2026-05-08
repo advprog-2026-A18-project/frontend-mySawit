@@ -1,23 +1,14 @@
 import axios from 'axios';
 
-// Auth API - port 8081
-const authApi = axios.create({
-  baseURL: 'http://localhost:8081',
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
 
-// Add auth token to requests if available
-authApi.interceptors.request.use((config) => {
+const authApiBaseURL = import.meta.env.VITE_AUTH_API_BASE_URL || 'http://localhost:8081';
+
+const attachAccessToken = (config) => {
   const token = localStorage.getItem('accessToken');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
+  if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
-});
+};
 
-// Kebun/User API - port 8082
 const api = axios.create({
   baseURL: 'http://localhost:8082/api',
   headers: {
@@ -25,22 +16,24 @@ const api = axios.create({
   },
 });
 
-// Add auth token to requests if available
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('accessToken');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
+const authApi = axios.create({
+  baseURL: authApiBaseURL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+})
 
-// Auth endpoints
-export const login = (data) => authApi.post('/auth/login', data);
-export const register = (data) => authApi.post('/auth/register', data);
+authApi.interceptors.request.use(attachAccessToken);
 
-// User endpoints
-export const getUsers = (params) => authApi.get('/internal/user/search', { params });
-export const getUserById = (userId) => authApi.get(`/auth/internal/user/${userId}`);
+// Auth API
+export const login = (payload) => authApi.post('/auth/login', payload);
+export const register = (payload) => authApi.post('/auth/register', payload);
+export const loginWithGoogle = (payload) => authApi.post('/auth/google', payload);
+export const refreshToken = (refreshTokenValue) =>
+  authApi.post('/auth/refresh', { refreshToken: refreshTokenValue });
+export const logout = (refreshTokenValue) =>
+  authApi.post('/auth/logout', { refreshToken: refreshTokenValue });
+
 
 // Kebun API
 export const getKebunList = (params) => api.get('/kebun', { params });
