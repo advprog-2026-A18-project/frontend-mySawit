@@ -22,6 +22,8 @@ export const getAuthUser = () => {
 
 export const isAuthenticated = () => Boolean(localStorage.getItem('accessToken'));
 
+export const getRefreshToken = () => localStorage.getItem('refreshToken');
+
 export const clearAuthSession = () => {
   localStorage.removeItem('accessToken');
   localStorage.removeItem('refreshToken');

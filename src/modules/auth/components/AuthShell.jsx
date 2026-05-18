@@ -25,32 +25,32 @@ export default function AuthShell({ children, mode = 'login' }) {
             <div className="mb-10 flex items-center gap-4">
               <BadgeIcon />
               <span className="text-4xl font-extrabold tracking-wide text-[#98ff8e] drop-shadow">
-                PLANTATION HQ
+                MySawit
               </span>
             </div>
 
             <h1 className="max-w-4xl text-3xl font-bold leading-tight text-white xl:text-4xl">
-              Precision management for high-density agricultural assets.
+              Integrated account access for plantation operations.
             </h1>
 
             <p className="mt-6 max-w-2xl text-xl leading-8 text-emerald-50/80">
-              Access the industrial-grade console for real-time logistics, inventory tracking,
-              and employee management across your entire estate.
+              Kelola autentikasi, otorisasi, dan profil operasional untuk buruh, mandor,
+              supir, dan admin utama.
             </p>
           </div>
 
           <div className="flex gap-7 text-white">
             <div className="border-l-2 border-[#98ff8e] pl-5">
               <p className="text-sm font-extrabold uppercase tracking-widest text-[#98ff8e]">
-                Global Tonnage
+                Auth Service
               </p>
-              <p className="mt-1 text-2xl font-bold">124,500 MT</p>
+              <p className="mt-1 text-2xl font-bold">Gateway 8080</p>
             </div>
             <div className="border-l-2 border-[#98ff8e] pl-5">
               <p className="text-sm font-extrabold uppercase tracking-widest text-[#98ff8e]">
-                Active Estates
+                RBAC
               </p>
-              <p className="mt-1 text-2xl font-bold">42 Units</p>
+              <p className="mt-1 text-2xl font-bold">4 Roles</p>
             </div>
           </div>
         </div>
@@ -60,7 +60,7 @@ export default function AuthShell({ children, mode = 'login' }) {
         <div className="mb-8 flex items-center gap-3 lg:hidden">
           <BadgeIcon />
           <span className="text-2xl font-extrabold tracking-wide text-green-700">
-            PLANTATION HQ
+            MySawit
           </span>
         </div>
 
@@ -69,7 +69,7 @@ export default function AuthShell({ children, mode = 'login' }) {
         </div>
 
         <footer className="mt-8 text-center text-[11px] uppercase tracking-[0.24em] text-slate-600">
-          © 2026 Estatemaster Pro • Industrial Resource Planning •{' '}
+          © 2026 MySawit • Plantation Resource Planning •{' '}
           {mode === 'register' ? 'Onboarding' : 'Authentication'}
         </footer>
       </section>
