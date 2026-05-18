@@ -31,7 +31,7 @@ const normalizeKebun = (data) => {
   if (typeof koordinat === 'string') {
     try {
       koordinat = JSON.parse(koordinat);
-    } catch (e) {
+    } catch {
       koordinat = null;
     }
   }
@@ -110,7 +110,7 @@ export default function KebunDetail() {
       ].filter(m => !assignedMandorIds.includes(m.id)));
 
       setShowMandorModal(true);
-    } catch (err) {
+    } catch {
       alert('Failed to load mandor data');
     }
   };
@@ -132,7 +132,7 @@ export default function KebunDetail() {
       ].filter(s => !currentSupirIds.includes(s.id)));
 
       setShowSupirModal(true);
-    } catch (err) {
+    } catch {
       alert('Failed to load supir data');
     }
   };
