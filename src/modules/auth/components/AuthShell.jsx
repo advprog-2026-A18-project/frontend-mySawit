@@ -9,8 +9,8 @@ const BadgeIcon = () => (
 
 export default function AuthShell({ children, mode = 'login' }) {
   return (
-    <main className="min-h-screen bg-[#f5f7fb] text-slate-950 lg:grid lg:grid-cols-[minmax(0,1.5fr)_minmax(460px,0.95fr)]">
-      <section className="relative hidden min-h-screen overflow-hidden bg-slate-950 lg:block">
+    <main className="min-h-screen bg-[#0b0b0b] text-[#f4f4f4] lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(420px,520px)]">
+      <section className="relative hidden min-h-screen overflow-hidden bg-[#101010] lg:block">
         <div
           className="absolute inset-0 bg-cover bg-center"
           style={{
@@ -18,58 +18,61 @@ export default function AuthShell({ children, mode = 'login' }) {
               "url('https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1800&q=85')",
           }}
         />
-        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(14,31,24,0.52),rgba(32,55,23,0.24)_38%,rgba(8,24,18,0.82))]" />
+        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(10,10,10,0.22),rgba(10,10,10,0.64)_45%,rgba(10,10,10,0.94))]" />
 
         <div className="relative z-10 flex min-h-screen flex-col justify-between p-8 xl:p-10">
           <div>
             <div className="mb-10 flex items-center gap-4">
               <BadgeIcon />
-              <span className="text-4xl font-extrabold tracking-wide text-[#98ff8e] drop-shadow">
-                PLANTATION HQ
+              <span className="text-4xl font-black tracking-tight text-[#52ef8b] drop-shadow">
+                MySawit
               </span>
             </div>
 
-            <h1 className="max-w-4xl text-3xl font-bold leading-tight text-white xl:text-4xl">
-              Precision management for high-density agricultural assets.
+            <p className="font-mono text-[12px] font-black uppercase tracking-[0.24em] text-[#52ef8b]">
+              Auth Service
+            </p>
+            <h1 className="mt-4 max-w-4xl text-5xl font-black leading-tight text-white">
+              Plantation OS access for field operations.
             </h1>
 
-            <p className="mt-6 max-w-2xl text-xl leading-8 text-emerald-50/80">
-              Access the industrial-grade console for real-time logistics, inventory tracking,
-              and employee management across your entire estate.
+            <p className="mt-6 max-w-2xl text-xl leading-8 text-[#d8e2d6]">
+              Kelola autentikasi, otorisasi, dan profil operasional untuk buruh, mandor,
+              supir, dan admin utama.
             </p>
           </div>
 
           <div className="flex gap-7 text-white">
             <div className="border-l-2 border-[#98ff8e] pl-5">
               <p className="text-sm font-extrabold uppercase tracking-widest text-[#98ff8e]">
-                Global Tonnage
+                Auth Service
               </p>
-              <p className="mt-1 text-2xl font-bold">124,500 MT</p>
+              <p className="mt-1 text-2xl font-bold">Gateway 8080</p>
             </div>
             <div className="border-l-2 border-[#98ff8e] pl-5">
               <p className="text-sm font-extrabold uppercase tracking-widest text-[#98ff8e]">
-                Active Estates
+                RBAC
               </p>
-              <p className="mt-1 text-2xl font-bold">42 Units</p>
+              <p className="mt-1 text-2xl font-bold">4 Roles</p>
             </div>
           </div>
         </div>
       </section>
 
-      <section className="flex min-h-screen flex-col px-5 py-6 sm:px-8 lg:px-10">
+      <section className="flex min-h-screen flex-col border-l border-[#282828] bg-[#141414] px-5 py-6 sm:px-8 lg:px-10">
         <div className="mb-8 flex items-center gap-3 lg:hidden">
           <BadgeIcon />
-          <span className="text-2xl font-extrabold tracking-wide text-green-700">
-            PLANTATION HQ
+          <span className="text-2xl font-black tracking-wide text-[#52ef8b]">
+            MySawit
           </span>
         </div>
 
         <div className="flex flex-1 items-start justify-center pt-2 sm:pt-8 lg:items-center lg:pt-0">
-          <div className="w-full max-w-xl">{children}</div>
+          <div className="w-full max-w-md">{children}</div>
         </div>
 
-        <footer className="mt-8 text-center text-[11px] uppercase tracking-[0.24em] text-slate-600">
-          © 2026 Estatemaster Pro • Industrial Resource Planning •{' '}
+        <footer className="mt-8 text-center text-[11px] uppercase tracking-[0.24em] text-[#899588]">
+          2026 MySawit • Plantation Resource Planning •{' '}
           {mode === 'register' ? 'Onboarding' : 'Authentication'}
         </footer>
       </section>

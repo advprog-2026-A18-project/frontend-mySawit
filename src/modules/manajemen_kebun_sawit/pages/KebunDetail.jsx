@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { getKebunDetail, assignMandor, unassignMandor, assignSupir, unassignSupir, getKebunList, getUserById, getUsers } from '../../../api/axios';
 
@@ -31,7 +31,7 @@ const normalizeKebun = (data) => {
   if (typeof koordinat === 'string') {
     try {
       koordinat = JSON.parse(koordinat);
-    } catch (e) {
+    } catch {
       koordinat = null;
     }
   }
@@ -74,7 +74,7 @@ export default function KebunDetail() {
   const [selectedSupirToUnassign, setSelectedSupirToUnassign] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  const fetchDetail = async () => {
+  const fetchDetail = useCallback(async () => {
     try {
       setLoading(true);
       const params = {};
@@ -118,11 +118,11 @@ export default function KebunDetail() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [kode, searchSupirNama]);
 
   useEffect(() => {
     fetchDetail();
-  }, [kode]);
+  }, [fetchDetail]);
 
   const handleSearchSupir = (e) => {
     e.preventDefault();
@@ -146,15 +146,8 @@ export default function KebunDetail() {
 
       setAvailableMandor(allMandors.filter(m => !assignedMandorIds.includes(m.id)));
       setShowMandorModal(true);
-    } catch (err) {
-      // Fallback ke mock data jika API gagal
-      console.error('Error loading mandor:', err);
-      setAvailableMandor([
-        { id: 'mandor-1', fullname: 'Budi Santoso', username: 'budi' },
-        { id: 'mandor-2', fullname: 'Ahmad Wijaya', username: 'ahmad' },
-        { id: 'mandor-3', fullname: 'Hendra Pratama', username: 'hendra' },
-      ]);
-      setShowMandorModal(true);
+    } catch {
+      alert('Failed to load mandor data');
     }
   };
 
@@ -172,26 +165,8 @@ export default function KebunDetail() {
 
       setAvailableSupir(allSupir.filter(s => !currentSupirIds.includes(s.id)));
       setShowSupirModal(true);
-    } catch (err) {
-      // Fallback ke mock data jika API gagal
-      console.error('Error loading supir:', err);
-      setAvailableSupir([
-        { id: 'supir-1', fullname: 'Soleh', username: 'soleh' },
-        { id: 'supir-2', fullname: 'Joko', username: 'joko' },
-        { id: 'supir-3', fullname: 'Rudi', username: 'rudi' },
-        { id: 'supir-4', fullname: 'Hadi', username: 'hadi' },
-      ]);
-      setShowSupirModal(true);
-    }
-  };
-
-  const fetchOtherKebun = async () => {
-    try {
-      const response = await getKebunList({});
-      const allKebun = response.data?.data || [];
-      setOtherKebun(allKebun.filter(k => k.kodeKebun !== kode));
-    } catch (err) {
-      console.error('Failed to load other kebun:', err);
+    } catch {
+      alert('Failed to load supir data');
     }
   };
 
