@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { getKebunList, deleteKebun } from '../../../api/axios';
 
@@ -31,7 +31,7 @@ export default function KebunList() {
   const [searchKode, setSearchKode] = useState('');
   const [deleteLoading, setDeleteLoading] = useState(null);
 
-  const fetchKebuns = async () => {
+  const fetchKebuns = useCallback(async () => {
     try {
       setLoading(true);
       const params = {};
@@ -48,11 +48,11 @@ export default function KebunList() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [searchKode, searchNama]);
 
   useEffect(() => {
     fetchKebuns();
-  }, []);
+  }, [fetchKebuns]);
 
   const handleSearch = (e) => {
     e.preventDefault();

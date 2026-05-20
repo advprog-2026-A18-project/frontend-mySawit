@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { getKebunDetail, assignMandor, unassignMandor, assignSupir, unassignSupir, getKebunList } from '../../../api/axios';
 
@@ -65,7 +65,7 @@ export default function KebunDetail() {
   const [selectedSupirId, setSelectedSupirId] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  const fetchDetail = async () => {
+  const fetchDetail = useCallback(async () => {
     try {
       setLoading(true);
       const params = {};
@@ -79,11 +79,11 @@ export default function KebunDetail() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [kode, searchSupirNama]);
 
   useEffect(() => {
     fetchDetail();
-  }, [kode]);
+  }, [fetchDetail]);
 
   const handleSearchSupir = (e) => {
     e.preventDefault();
