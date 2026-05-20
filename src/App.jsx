@@ -11,7 +11,9 @@ import KebunDetail from './modules/manajemen_kebun_sawit/pages/KebunDetail';
 import AppLayout from './layouts/AppLayout';
 import Dashboard from './modules/shared/pages/Dashboard';
 import ModulePlaceholder from './modules/shared/pages/ModulePlaceholder';
-import { isAuthenticated } from './modules/auth/authStorage';
+import AccessDenied from './modules/shared/pages/AccessDenied';
+import { ALL_ROLES, ROLES, canAccess, getDefaultPathForRole } from './config/access';
+import { getAuthUser, isAuthenticated } from './modules/auth/authStorage';
 
 function ProtectedRoute() {
   if (!isAuthenticated()) {
@@ -19,6 +21,21 @@ function ProtectedRoute() {
   }
 
   return <AppLayout />;
+}
+
+function RoleRoute({ roles = ALL_ROLES, children }) {
+  const user = getAuthUser();
+
+  if (!canAccess(user?.role, roles)) {
+    return <AccessDenied />;
+  }
+
+  return children;
+}
+
+function HomeRedirect() {
+  const user = getAuthUser();
+  return <Navigate to={getDefaultPathForRole(user?.role)} replace />;
 }
 
 function App() {
@@ -30,44 +47,102 @@ function App() {
 
         <Route element={<ProtectedRoute />}>
           <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/users" element={<Users />} />
+          <Route
+            path="/users"
+            element={(
+              <RoleRoute roles={[ROLES.ADMIN]}>
+                <Users />
+              </RoleRoute>
+            )}
+          />
           <Route path="/users/me" element={<Profile />} />
-          <Route path="/mandor/bawahan" element={<Bawahan />} />
-          <Route path="/internal/users" element={<InternalUsers />} />
+          <Route
+            path="/mandor/bawahan"
+            element={(
+              <RoleRoute roles={[ROLES.MANDOR]}>
+                <Bawahan />
+              </RoleRoute>
+            )}
+          />
+          <Route
+            path="/internal/users"
+            element={(
+              <RoleRoute roles={[ROLES.ADMIN]}>
+                <InternalUsers />
+              </RoleRoute>
+            )}
+          />
 
-          <Route path="/kebun" element={<KebunList />} />
-          <Route path="/kebun/new" element={<KebunForm />} />
-          <Route path="/kebun/:kode/edit" element={<KebunForm />} />
-          <Route path="/kebun/:kode" element={<KebunDetail />} />
+          <Route
+            path="/kebun"
+            element={(
+              <RoleRoute roles={[ROLES.ADMIN, ROLES.MANDOR]}>
+                <KebunList />
+              </RoleRoute>
+            )}
+          />
+          <Route
+            path="/kebun/new"
+            element={(
+              <RoleRoute roles={[ROLES.ADMIN]}>
+                <KebunForm />
+              </RoleRoute>
+            )}
+          />
+          <Route
+            path="/kebun/:kode/edit"
+            element={(
+              <RoleRoute roles={[ROLES.ADMIN]}>
+                <KebunForm />
+              </RoleRoute>
+            )}
+          />
+          <Route
+            path="/kebun/:kode"
+            element={(
+              <RoleRoute roles={[ROLES.ADMIN, ROLES.MANDOR]}>
+                <KebunDetail />
+              </RoleRoute>
+            )}
+          />
 
           <Route
             path="/panen"
             element={
-              <ModulePlaceholder
-                title="Manajemen Hasil Panen"
-                description="Base page untuk pelaporan hasil panen, approval mandor, rejection reason, dan riwayat panen."
-                checklist={['Buruh submit hasil panen', 'Mandor approval/rejection', 'Filter tanggal dan status']}
-              />
+              <RoleRoute roles={[ROLES.BURUH, ROLES.MANDOR]}>
+                <ModulePlaceholder
+                  title="Harvest Reporting"
+                  eyebrow="Buruh Portal"
+                  description="Pelaporan hasil panen, bukti lapangan, approval mandor, rejection reason, dan riwayat panen."
+                  checklist={['Buruh submit hasil panen', 'Mandor approval/rejection', 'Filter tanggal dan status']}
+                />
+              </RoleRoute>
             }
           />
           <Route
             path="/pengiriman"
             element={
-              <ModulePlaceholder
-                title="Manajemen Pengiriman"
-                description="Base page untuk assignment supir, tracking status pengiriman, dan approval hasil pengiriman."
-                checklist={['Assign supir', 'Status Memuat/Mengirim/Tiba', 'Approval dan rejection mandor/admin']}
-              />
+              <RoleRoute roles={[ROLES.SUPIR, ROLES.ADMIN, ROLES.MANDOR]}>
+                <ModulePlaceholder
+                  title="Active Transport Manifest"
+                  eyebrow="Logistics"
+                  description="Assignment supir, tracking status pengiriman, dan approval hasil pengiriman."
+                  checklist={['Assign supir', 'Status Memuat/Mengirim/Tiba', 'Approval dan rejection mandor/admin']}
+                />
+              </RoleRoute>
             }
           />
           <Route
             path="/pembayaran"
             element={
-              <ModulePlaceholder
-                title="Manajemen Pembayaran"
-                description="Base page untuk payroll, wallet, konfigurasi upah, dan approval pembayaran."
-                checklist={['Payroll pending/accepted/rejected', 'Wallet SawitDollar', 'Payment gateway sandbox']}
-              />
+              <RoleRoute roles={[ROLES.ADMIN]}>
+                <ModulePlaceholder
+                  title="Payment & Payroll Config"
+                  eyebrow="Financials"
+                  description="Payroll, wallet, konfigurasi upah, dan approval pembayaran."
+                  checklist={['Payroll pending/accepted/rejected', 'Wallet SawitDollar', 'Payment gateway sandbox']}
+                />
+              </RoleRoute>
             }
           />
           <Route
@@ -82,8 +157,8 @@ function App() {
           />
         </Route>
 
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        <Route path="/" element={<HomeRedirect />} />
+        <Route path="*" element={<HomeRedirect />} />
       </Routes>
     </BrowserRouter>
   );
