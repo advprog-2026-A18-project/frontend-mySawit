@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   assignUserMandor,
   deleteUser,
+  getUserDetail,
   searchUsers,
   unassignUserMandor,
   unwrapApiData,
@@ -34,6 +35,7 @@ export default function Users() {
   const [message, setMessage] = useState(null);
   const [assignForm, setAssignForm] = useState({ buruhId: '', mandorId: '' });
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [selectedUser, setSelectedUser] = useState(null);
 
   const mandorUsers = useMemo(() => users.filter((u) => u.role === 'MANDOR'), [users]);
   const buruhUsers = useMemo(() => users.filter((u) => u.role === 'BURUH'), [users]);
@@ -116,6 +118,19 @@ export default function Users() {
     }
   };
 
+  const handleDetail = async (userId) => {
+    setLoading(true);
+    setMessage(null);
+    try {
+      const response = await getUserDetail(userId);
+      setSelectedUser(unwrapApiData(response));
+    } catch (error) {
+      setMessage({ type: 'error', text: error.response?.data?.message || 'Gagal mengambil detail pengguna.' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const goToPage = (page) => {
     const nextFilters = { ...filters, page };
     setFilters(nextFilters);
@@ -125,19 +140,23 @@ export default function Users() {
   return (
     <div className="space-y-5">
       {/* Header */}
-      <section className="relative overflow-hidden rounded-2xl border border-[#1a3a22] bg-[#060d09] p-6">
-        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#4ade80]/40 to-transparent" />
+      <section className="relative overflow-hidden rounded-[8px] border border-[#303030] bg-[#171717] p-7">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-[11px] font-bold uppercase tracking-[0.25em] text-[#4a6b52]">Admin</p>
-            <h1 className="mt-1 text-3xl font-black tracking-tight text-white">Manajemen Pengguna</h1>
+            <p className="font-mono text-[12px] font-black uppercase tracking-[0.24em] text-[#52ef8b]">
+              Admin Panel
+            </p>
+            <h1 className="mt-2 text-4xl font-black tracking-tight text-[#f4f4f4]">Staff & Role Management</h1>
+            <p className="mt-2 max-w-3xl text-[16px] text-[#c2cec0]">
+              Kelola akun, role, detail pengguna, assignment mandor, dan penghapusan staff.
+            </p>
           </div>
-          <div className="rounded-xl border border-[#1a3a22] bg-[#0a1a0f] px-4 py-3">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-[#3a5c42]">Total</p>
-            <p className="mt-1 text-2xl font-black text-[#4ade80]">
+          <div className="rounded-[8px] border border-[#303030] bg-[#202020] px-5 py-4">
+            <p className="font-mono text-[11px] font-black uppercase tracking-[0.18em] text-[#b9c3b8]">Total</p>
+            <p className="mt-1 text-3xl font-black text-[#52ef8b]">
               {paging?.totalElements ?? users.length}
             </p>
-            <p className="text-[10px] text-[#3a5c42]">pengguna</p>
+            <p className="text-[11px] text-[#9da89b]">pengguna</p>
           </div>
         </div>
       </section>
@@ -156,7 +175,7 @@ export default function Users() {
       )}
 
       {/* Search */}
-      <form className="rounded-xl border border-[#1a3a22] bg-[#080f0a] p-4" onSubmit={handleSearch}>
+      <form className="rounded-[8px] border border-[#303030] bg-[#171717] p-5" onSubmit={handleSearch}>
         <p className="mb-3 text-[11px] font-bold uppercase tracking-widest text-[#3a5c42]">Filter Pengguna</p>
         <div className="grid gap-3 lg:grid-cols-[1fr_1fr_180px_100px]">
           <input
@@ -197,7 +216,7 @@ export default function Users() {
       </form>
 
       {/* Assignment */}
-      <section className="rounded-xl border border-[#1a3a22] bg-[#080f0a] p-5">
+      <section className="rounded-[8px] border border-[#303030] bg-[#171717] p-5">
         <p className="mb-1 text-[11px] font-bold uppercase tracking-widest text-[#3a5c42]">Assignment</p>
         <h2 className="text-[15px] font-black text-white">Assign Buruh ke Mandor</h2>
         <form className="mt-4 grid gap-3 lg:grid-cols-[1fr_1fr_120px]" onSubmit={handleAssign}>
@@ -238,7 +257,42 @@ export default function Users() {
       </section>
 
       {/* Table */}
-      <section className="overflow-hidden rounded-xl border border-[#1a3a22] bg-[#080f0a]">
+      {selectedUser && (
+        <section className="rounded-[8px] border border-[#303030] bg-[#171717] p-5">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="font-mono text-[11px] font-black uppercase tracking-[0.18em] text-[#52ef8b]">
+                User Detail
+              </p>
+              <h2 className="mt-1 text-2xl font-black text-[#f4f4f4]">
+                {selectedUser.fullname || selectedUser.username}
+              </h2>
+            </div>
+            <button
+              className="rounded-[8px] border border-[#303030] px-3 py-2 text-[12px] font-black text-[#cbd6c9]"
+              type="button"
+              onClick={() => setSelectedUser(null)}
+            >
+              Tutup
+            </button>
+          </div>
+          <dl className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            {[
+              ['Email', selectedUser.email],
+              ['Role', selectedUser.role],
+              ['Mandor', selectedUser.namaMandor],
+              ['Nomor Sertifikasi', selectedUser.nomorSertifikasi],
+            ].map(([label, value]) => (
+              <div key={label} className="rounded-[8px] border border-[#292929] bg-[#202020] p-4">
+                <dt className="font-mono text-[10px] font-black uppercase tracking-[0.16em] text-[#9da89b]">{label}</dt>
+                <dd className="mt-2 text-[14px] font-black text-[#f4f4f4]">{value || '-'}</dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+      )}
+
+      <section className="overflow-hidden rounded-[8px] border border-[#303030] bg-[#171717]">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[860px] text-left text-[13px]">
             <thead className="border-b border-[#1a3a22] bg-[#0a1a0f]">
@@ -304,6 +358,13 @@ export default function Users() {
                             Unassign
                           </button>
                         )}
+                        <button
+                          className="rounded-lg border border-[#1a3a22] px-3 py-1.5 text-[11px] font-bold text-[#4a6b52] transition-all hover:border-[#4ade80] hover:text-[#4ade80] active:scale-[0.97]"
+                          type="button"
+                          onClick={() => handleDetail(user.id)}
+                        >
+                          Detail
+                        </button>
                         {deleteConfirm === user.id ? (
                           <div className="flex gap-1.5">
                             <button

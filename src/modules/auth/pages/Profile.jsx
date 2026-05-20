@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { getMyProfile, updateMyProfile, unwrapApiData } from '../../../api/axios';
 import { persistAuthSession } from '../authStorage';
 
@@ -18,7 +18,7 @@ export default function Profile() {
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState(null);
 
-  const fetchProfile = async () => {
+  const fetchProfile = useCallback(async () => {
     setLoading(true);
     try {
       const response = await getMyProfile();
@@ -31,9 +31,9 @@ export default function Profile() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  useEffect(() => { fetchProfile(); }, []);
+  useEffect(() => { fetchProfile(); }, [fetchProfile]);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -60,15 +60,14 @@ export default function Profile() {
   return (
     <div className="space-y-5">
       {/* Header */}
-      <section className="relative overflow-hidden rounded-2xl border border-[#1a3a22] bg-[#060d09] p-6">
-        <div className="pointer-events-none absolute right-0 top-0 h-48 w-48 rounded-full bg-[#166534]/10 blur-3xl" />
-        <div className="relative flex items-center gap-5">
-          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-[#0a1f12] border border-[#1a3a22] text-3xl font-black text-[#4ade80] shadow-[0_0_20px_rgba(74,222,128,0.2)]">
+      <section className="rounded-[8px] border border-[#303030] bg-[#171717] p-7">
+        <div className="flex items-center gap-5">
+          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-[8px] border border-[#255b39] bg-[#102518] text-3xl font-black text-[#52ef8b]">
             {(profile?.fullname || profile?.username || 'U').charAt(0).toUpperCase()}
           </div>
           <div>
-            <p className="text-[11px] font-bold uppercase tracking-[0.25em] text-[#4a6b52]">Profil Saya</p>
-            <h1 className="mt-1 text-2xl font-black text-white">
+            <p className="font-mono text-[12px] font-black uppercase tracking-[0.24em] text-[#52ef8b]">Profil Saya</p>
+            <h1 className="mt-1 text-3xl font-black text-[#f4f4f4]">
               {profile?.fullname || profile?.username || '—'}
             </h1>
             {profile?.role && (
@@ -95,7 +94,7 @@ export default function Profile() {
 
       <div className="grid gap-5 lg:grid-cols-[1fr_1.2fr]">
         {/* Account details */}
-        <div className="rounded-xl border border-[#1a3a22] bg-[#080f0a] p-5">
+        <div className="rounded-[8px] border border-[#303030] bg-[#171717] p-5">
           <p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-[#3a5c42]">Detail Akun</p>
           <h2 className="text-[15px] font-black text-white">Informasi</h2>
           <dl className="mt-5 space-y-4">
@@ -118,7 +117,7 @@ export default function Profile() {
         </div>
 
         {/* Edit form */}
-        <form className="rounded-xl border border-[#1a3a22] bg-[#080f0a] p-5" onSubmit={handleSubmit}>
+        <form className="rounded-[8px] border border-[#303030] bg-[#171717] p-5" onSubmit={handleSubmit}>
           <p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-[#3a5c42]">Edit Profil</p>
           <h2 className="text-[15px] font-black text-white">Ubah Data</h2>
           <div className="mt-5 space-y-4">

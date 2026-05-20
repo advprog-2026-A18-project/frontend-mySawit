@@ -115,8 +115,8 @@ export default function Login() {
       <div className="space-y-7">
         {/* Header */}
         <div>
-          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#0a1f12] border border-[#1a3a22] text-2xl">
-            🌴
+          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-[8px] border border-[#255b39] bg-[#102518] text-[13px] font-black text-[#52ef8b]">
+            MS
           </div>
           <h1 className="text-[28px] font-black tracking-tight text-white">
             Selamat Datang

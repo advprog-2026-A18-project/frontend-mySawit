@@ -5,9 +5,9 @@ import { persistAuthSession } from '../authStorage';
 import AuthShell from '../components/AuthShell';
 
 const roleOptions = [
-  { value: 'BURUH', label: 'Buruh', desc: 'Personel pemanen lapangan', icon: '🌾' },
-  { value: 'MANDOR', label: 'Mandor', desc: 'Pengawas operasional kebun', icon: '📋' },
-  { value: 'SUPIR', label: 'Supir', desc: 'Armada transportasi hasil panen', icon: '🚛' },
+  { value: 'BURUH', label: 'Buruh', desc: 'Personel pemanen lapangan', code: 'BR' },
+  { value: 'MANDOR', label: 'Mandor', desc: 'Pengawas operasional kebun', code: 'MD' },
+  { value: 'SUPIR', label: 'Supir', desc: 'Armada transportasi hasil panen', code: 'SP' },
 ];
 
 const inputClass =
@@ -65,8 +65,8 @@ export default function Register() {
       <div className="space-y-7">
         {/* Header */}
         <div>
-          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#0a1f12] border border-[#1a3a22] text-2xl">
-            🌴
+          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-[8px] border border-[#255b39] bg-[#102518] text-[13px] font-black text-[#52ef8b]">
+            MS
           </div>
           <h1 className="text-[28px] font-black tracking-tight text-white">
             Buat Akun Baru
@@ -160,7 +160,9 @@ export default function Register() {
                       : 'border-[#1a3a22] bg-[#080f0a] hover:border-[#2a5a32] hover:bg-[#0a1a0f]'
                   }`}
                 >
-                  <span className="text-xl">{role.icon}</span>
+                  <span className="inline-flex h-8 w-8 items-center justify-center rounded-[8px] bg-[#102518] text-[11px] font-black text-[#52ef8b]">
+                    {role.code}
+                  </span>
                   <p className={`mt-1 text-[13px] font-black ${form.role === role.value ? 'text-[#4ade80]' : 'text-white'}`}>
                     {role.label}
                   </p>
