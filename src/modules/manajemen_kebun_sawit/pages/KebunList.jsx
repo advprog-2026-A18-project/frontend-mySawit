@@ -38,13 +38,14 @@ export default function KebunList() {
       if (searchNama) params.searchNama = searchNama;
       if (searchKode) params.searchKode = searchKode;
       const response = await getKebunList(params);
+      console.log('Kebun response:', response);
       // API returns { statusCode, message, data: [...] }
       const data = response.data?.data || [];
       setKebuns(Array.isArray(data) ? data : []);
       setError(null);
     } catch (err) {
-      setError('Failed to fetch kebun data: ' + (err.message || 'Unknown error'));
-      console.error(err);
+      console.error('Error fetching kebun:', err);
+      setError('Gagal fetch data: ' + (err.response?.data?.message || err.message || 'Unknown error'));
     } finally {
       setLoading(false);
     }
@@ -123,7 +124,8 @@ export default function KebunList() {
         {/* Error State */}
         {error && (
           <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-            {error}
+            <strong>Error:</strong> {error}
+            <button onClick={fetchKebuns} className="ml-4 px-3 py-1 bg-red-200 rounded">Retry</button>
           </div>
         )}
 
@@ -162,15 +164,32 @@ export default function KebunList() {
                     </td>
                     <td className="px-6 py-4">
                       {kebun.mandorId ? (
-                        <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">Assigned</span>
+                        <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs" title={kebun.mandorId}>
+                          {kebun.namaMandor || 'Assigned'}
+                        </span>
                       ) : (
                         <span className="bg-gray-100 text-gray-500 px-2 py-1 rounded text-xs">Belum</span>
                       )}
                     </td>
                     <td className="px-6 py-4">
-                      <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">
-                        {kebun.supirIds?.length || 0} supir
-                      </span>
+                      {kebun.listSupir && kebun.listSupir.length > 0 ? (
+                        <div className="flex flex-wrap gap-1">
+                          {kebun.listSupir.slice(0, 3).map((name, i) => (
+                            <span key={i} className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs" title={kebun.supirIds?.[i]}>
+                              {name}
+                            </span>
+                          ))}
+                          {kebun.listSupir.length > 3 && (
+                            <span className="bg-blue-200 text-blue-800 px-2 py-1 rounded text-xs">
+                              +{kebun.listSupir.length - 3}
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="bg-gray-100 text-gray-500 px-2 py-1 rounded text-xs">
+                          {kebun.supirIds?.length || 0} supir
+                        </span>
+                      )}
                     </td>
                     <td className="px-6 py-4 flex gap-2">
                       <Link
