@@ -21,7 +21,7 @@ export const appModules = [
     id: 'panen',
     label: 'Buruh Portal',
     path: '/panen',
-    status: 'base',
+    status: 'ready',
     description: 'Pelaporan, approval, dan riwayat hasil panen.',
     roles: [ROLES.BURUH, ROLES.MANDOR],
   },
@@ -29,7 +29,7 @@ export const appModules = [
     id: 'pengiriman',
     label: 'Logistics',
     path: '/pengiriman',
-    status: 'base',
+    status: 'ready',
     description: 'Penugasan pengiriman dan tracking status supir.',
     roles: [ROLES.SUPIR, ROLES.ADMIN, ROLES.MANDOR],
   },
@@ -40,14 +40,6 @@ export const appModules = [
     status: 'base',
     description: 'Payroll, wallet, dan konfigurasi upah.',
     roles: [ROLES.ADMIN],
-  },
-  {
-    id: 'notifikasi',
-    label: 'Notifikasi',
-    path: '/notifikasi',
-    status: 'base',
-    description: 'Kotak masuk, broadcast, dan event notification.',
-    roles: ALL_ROLES,
   },
 ];
 
@@ -74,6 +66,14 @@ export const systemModules = [
     path: '/internal/users',
     status: 'ready',
     description: 'Preview endpoint internal service-to-service.',
+    roles: [ROLES.ADMIN],
+  },
+  {
+    id: 'grpc',
+    label: 'gRPC Map',
+    path: '/internal/grpc',
+    status: 'ready',
+    description: 'Visualisasi komunikasi internal antar microservice.',
     roles: [ROLES.ADMIN],
   },
 ];

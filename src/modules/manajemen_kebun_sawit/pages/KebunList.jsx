@@ -1,224 +1,207 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { getKebunList, deleteKebun } from '../../../api/axios';
+import { deleteKebun, getKebunList, unwrapApiData } from '../../../api/axios';
+import { getAuthUser } from '../../auth/authStorage';
 
-// Helper function to get coordinate display
-const getCoordDisplay = (kebun) => {
-  if (!kebun.koordinat) return '-';
-  // koordinat can be string (JSON) or array
-  let coords = kebun.koordinat;
-  if (typeof coords === 'string') {
-    try { coords = JSON.parse(coords); } catch { return '-'; }
-  }
-  if (Array.isArray(coords) && coords.length > 0) {
-    // Show bounds: min lat,min lng to max lat,max lng
-    const lats = coords.map(c => c.lat);
-    const lngs = coords.map(c => c.lng);
-    const minLat = Math.min(...lats);
-    const maxLat = Math.max(...lats);
-    const minLng = Math.min(...lngs);
-    const maxLng = Math.max(...lngs);
-    return `${minLat},${minLng} - ${maxLat},${maxLng}`;
-  }
-  return '-';
+const inputClass =
+  'h-11 rounded-[8px] border border-[#2d2d2d] bg-[#101f15] px-3 text-[13px] text-white outline-none placeholder:text-[#6d796d] focus:border-[#52ef8b] focus:ring-2 focus:ring-[#52ef8b]/15';
+
+const messageClass = {
+  error: 'border-red-500/30 bg-red-500/10 text-red-300',
+  success: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300',
 };
 
-export default function KebunList() {
-  const [kebuns, setKebuns] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [searchNama, setSearchNama] = useState('');
-  const [searchKode, setSearchKode] = useState('');
-  const [deleteLoading, setDeleteLoading] = useState(null);
+function parseCoords(koordinat) {
+  if (!koordinat) return [];
+  if (Array.isArray(koordinat)) return koordinat;
+  try {
+    return JSON.parse(koordinat);
+  } catch {
+    return [];
+  }
+}
 
-  const fetchKebuns = useCallback(async () => {
+function coordSummary(koordinat) {
+  const coords = parseCoords(koordinat);
+  if (coords.length !== 4) return '-';
+  const lats = coords.map((item) => Number(item.lat));
+  const lngs = coords.map((item) => Number(item.lng));
+  return `${Math.min(...lats)}, ${Math.min(...lngs)} -> ${Math.max(...lats)}, ${Math.max(...lngs)}`;
+}
+
+function Badge({ children, tone = 'default' }) {
+  const toneClass = {
+    green: 'bg-[#102518] text-[#52ef8b]',
+    blue: 'bg-[#0a1520] text-[#9ccfff]',
+    red: 'bg-[#351717] text-[#fca5a5]',
+    default: 'bg-[#242424] text-[#cbd6c9]',
+  };
+  return (
+    <span className={`inline-flex h-8 items-center rounded-[8px] px-3 font-mono text-[11px] font-black uppercase tracking-[0.14em] ${toneClass[tone]}`}>
+      {children}
+    </span>
+  );
+}
+
+export default function KebunList() {
+  const user = getAuthUser();
+  const isAdmin = user?.role === 'ADMIN';
+
+  const [kebuns, setKebuns] = useState([]);
+  const [filters, setFilters] = useState({ searchNama: '', searchKode: '', sortBy: 'kodeKebun' });
+  const [loading, setLoading] = useState(true);
+  const [deleting, setDeleting] = useState(null);
+  const [message, setMessage] = useState(null);
+
+  const totalSupir = useMemo(
+    () => kebuns.reduce((sum, kebun) => sum + (kebun.supirIds?.length || 0), 0),
+    [kebuns],
+  );
+  const assignedMandor = useMemo(() => kebuns.filter((kebun) => kebun.mandorId).length, [kebuns]);
+
+  const fetchKebuns = useCallback(async (nextFilters = filters) => {
+    setLoading(true);
+    setMessage(null);
     try {
-      setLoading(true);
-      const params = {};
-      if (searchNama) params.searchNama = searchNama;
-      if (searchKode) params.searchKode = searchKode;
-      const response = await getKebunList(params);
-      console.log('Kebun response:', response);
-      // API returns { statusCode, message, data: [...] }
-      const data = response.data?.data || [];
+      const response = await getKebunList({
+        searchNama: nextFilters.searchNama || undefined,
+        searchKode: nextFilters.searchKode || undefined,
+        sortBy: nextFilters.sortBy || undefined,
+      });
+      const data = unwrapApiData(response);
       setKebuns(Array.isArray(data) ? data : []);
-      setError(null);
-    } catch (err) {
-      console.error('Error fetching kebun:', err);
-      setError('Gagal fetch data: ' + (err.response?.data?.message || err.message || 'Unknown error'));
+    } catch (error) {
+      setMessage({ type: 'error', text: error.response?.data?.message || 'Gagal mengambil data kebun.' });
     } finally {
       setLoading(false);
     }
-  }, [searchKode, searchNama]);
+  }, [filters]);
 
-  useEffect(() => {
-    fetchKebuns();
-  }, [fetchKebuns]);
+  useEffect(() => { fetchKebuns(); }, [fetchKebuns]);
 
-  const handleSearch = (e) => {
-    e.preventDefault();
-    fetchKebuns();
+  const updateFilter = (event) => {
+    const { name, value } = event.target;
+    setFilters((current) => ({ ...current, [name]: value }));
   };
 
-  const handleDelete = async (kode) => {
-    if (!confirm('Apakah Anda yakin ingin menghapus kebun ini?')) return;
+  const handleSearch = (event) => {
+    event.preventDefault();
+    fetchKebuns(filters);
+  };
 
+  const handleDelete = async (kodeKebun) => {
+    if (!window.confirm(`Hapus kebun ${kodeKebun}?`)) return;
+    setDeleting(kodeKebun);
+    setMessage(null);
     try {
-      setDeleteLoading(kode);
-      await deleteKebun(kode);
-      fetchKebuns();
-    } catch (err) {
-      const message = err.response?.data?.message || 'Gagal menghapus kebun';
-      alert(message);
+      await deleteKebun(kodeKebun);
+      setMessage({ type: 'success', text: `Kebun ${kodeKebun} berhasil dihapus.` });
+      await fetchKebuns(filters);
+    } catch (error) {
+      setMessage({ type: 'error', text: error.response?.data?.message || 'Gagal menghapus kebun.' });
     } finally {
-      setDeleteLoading(null);
+      setDeleting(null);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-6xl mx-auto">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold text-gray-800">Manajemen Kebun Sawit</h1>
-          <Link
-            to="/kebun/new"
-            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
+    <div className="space-y-6">
+      <section className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <p className="font-mono text-[12px] font-black uppercase tracking-[0.24em] text-[#52ef8b]">Field Assets</p>
+          <h1 className="mt-2 text-4xl font-black tracking-tight text-[#f4f4f4]">Manajemen Kebun Sawit</h1>
+          <p className="mt-2 max-w-3xl text-[15px] leading-7 text-[#c2cec0]">
+            Kelola data kebun, koordinat area, mandor, supir, dan reassignment operasional.
+          </p>
+        </div>
+        {isAdmin && (
+          <Link className="inline-flex h-11 items-center justify-center rounded-[8px] bg-[#35d174] px-5 text-[13px] font-black text-[#06120b]" to="/kebun/new">
             Tambah Kebun
           </Link>
-        </div>
-
-        {/* Search Form */}
-        <form onSubmit={handleSearch} className="bg-white p-4 rounded-lg shadow mb-6">
-          <div className="flex gap-4 flex-wrap">
-            <div className="flex-1 min-w-[200px]">
-              <input
-                type="text"
-                placeholder="Cari nama kebun..."
-                value={searchNama}
-                onChange={(e) => setSearchNama(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
-              />
-            </div>
-            <div className="flex-1 min-w-[200px]">
-              <input
-                type="text"
-                placeholder="Cari kode kebun..."
-                value={searchKode}
-                onChange={(e) => setSearchKode(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
-              />
-            </div>
-            <button
-              type="submit"
-              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg"
-            >
-              Cari
-            </button>
-          </div>
-        </form>
-
-        {/* Error State */}
-        {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-            <strong>Error:</strong> {error}
-            <button onClick={fetchKebuns} className="ml-4 px-3 py-1 bg-red-200 rounded">Retry</button>
-          </div>
         )}
+      </section>
 
-        {/* Loading State */}
-        {loading ? (
-          <div className="text-center py-8">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-green-600 border-t-transparent"></div>
-            <p className="mt-2 text-gray-600">Loading...</p>
-          </div>
-        ) : kebuns.length === 0 ? (
-          <div className="bg-white rounded-lg shadow p-8 text-center text-gray-500">
-            Tidak ada data kebun
-          </div>
-        ) : (
-          <div className="bg-white rounded-lg shadow overflow-hidden">
-            <table className="w-full">
-              <thead className="bg-gray-100">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Kode</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nama</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Luas (Ha)</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Koordinat</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Mandor</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Supir</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Aksi</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {kebuns.map((kebun) => (
-                  <tr key={kebun.kodeKebun} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap font-medium">{kebun.kodeKebun}</td>
-                    <td className="px-6 py-4">{kebun.namaKebun}</td>
-                    <td className="px-6 py-4">{kebun.luasHektare}</td>
-                    <td className="px-6 py-4 font-mono text-sm">
-                      {getCoordDisplay(kebun)}
-                    </td>
-                    <td className="px-6 py-4">
-                      {kebun.mandorId ? (
-                        <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs" title={kebun.mandorId}>
-                          {kebun.namaMandor || 'Assigned'}
-                        </span>
-                      ) : (
-                        <span className="bg-gray-100 text-gray-500 px-2 py-1 rounded text-xs">Belum</span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4">
-                      {kebun.listSupir && kebun.listSupir.length > 0 ? (
-                        <div className="flex flex-wrap gap-1">
-                          {kebun.listSupir.slice(0, 3).map((name, i) => (
-                            <span key={i} className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs" title={kebun.supirIds?.[i]}>
-                              {name}
-                            </span>
-                          ))}
-                          {kebun.listSupir.length > 3 && (
-                            <span className="bg-blue-200 text-blue-800 px-2 py-1 rounded text-xs">
-                              +{kebun.listSupir.length - 3}
-                            </span>
-                          )}
-                        </div>
-                      ) : (
-                        <span className="bg-gray-100 text-gray-500 px-2 py-1 rounded text-xs">
-                          {kebun.supirIds?.length || 0} supir
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 flex gap-2">
-                      <Link
-                        to={`/kebun/${kebun.kodeKebun}`}
-                        className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-                      >
+      {message && (
+        <div className={`rounded-[8px] border px-4 py-3 text-[13px] font-bold ${messageClass[message.type]}`}>
+          {message.text}
+        </div>
+      )}
+
+      <section className="grid gap-4 md:grid-cols-3">
+        {[
+          ['Total kebun', kebuns.length],
+          ['Mandor assigned', assignedMandor],
+          ['Supir assigned', totalSupir],
+        ].map(([label, value]) => (
+          <article key={label} className="rounded-[8px] border border-[#303030] bg-[#181818] p-5">
+            <p className="font-mono text-[11px] font-black uppercase tracking-[0.18em] text-[#9aa79a]">{label}</p>
+            <p className="mt-3 text-3xl font-black text-[#f4f4f4]">{value}</p>
+          </article>
+        ))}
+      </section>
+
+      <form className="rounded-[8px] border border-[#303030] bg-[#171717] p-5" onSubmit={handleSearch}>
+        <div className="grid gap-3 lg:grid-cols-[1fr_1fr_180px_120px]">
+          <input className={inputClass} name="searchNama" value={filters.searchNama} onChange={updateFilter} placeholder="Cari nama kebun" />
+          <input className={inputClass} name="searchKode" value={filters.searchKode} onChange={updateFilter} placeholder="Cari kode kebun" />
+          <select className={inputClass} name="sortBy" value={filters.sortBy} onChange={updateFilter}>
+            <option value="kodeKebun">Kode A-Z</option>
+            <option value="createdAt">Terbaru</option>
+          </select>
+          <button className="h-11 rounded-[8px] bg-[#242424] px-4 text-[12px] font-black text-[#52ef8b]" type="submit">
+            Filter
+          </button>
+        </div>
+      </form>
+
+      <section className="overflow-hidden rounded-[8px] border border-[#303030] bg-[#171717]">
+        <div className="overflow-x-auto">
+          <table className="min-w-[1040px] w-full text-left">
+            <thead className="bg-[#202020]">
+              <tr>
+                {['Kode', 'Nama Kebun', 'Luas', 'Koordinat', 'Mandor', 'Supir', 'Aksi'].map((header) => (
+                  <th key={header} className="px-5 py-4 font-mono text-[11px] font-black uppercase tracking-[0.16em] text-[#9aa79a]">{header}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[#292929]">
+              {loading ? (
+                <tr><td className="px-5 py-8 text-center text-[#9aa79a]" colSpan="7">Memuat data kebun...</td></tr>
+              ) : kebuns.length === 0 ? (
+                <tr><td className="px-5 py-8 text-center text-[#9aa79a]" colSpan="7">Belum ada data kebun.</td></tr>
+              ) : kebuns.map((kebun) => (
+                <tr key={kebun.kodeKebun}>
+                  <td className="px-5 py-4 font-mono text-[13px] font-black text-[#52ef8b]">{kebun.kodeKebun}</td>
+                  <td className="px-5 py-4 font-black text-[#f4f4f4]">{kebun.namaKebun}</td>
+                  <td className="px-5 py-4 text-[#dce6da]">{kebun.luasHektare} Ha</td>
+                  <td className="px-5 py-4 font-mono text-[12px] text-[#9aa79a]">{coordSummary(kebun.koordinat)}</td>
+                  <td className="px-5 py-4">
+                    {kebun.mandorId ? <Badge tone="green">{kebun.namaMandor || 'Assigned'}</Badge> : <Badge>Belum</Badge>}
+                  </td>
+                  <td className="px-5 py-4"><Badge tone="blue">{kebun.supirIds?.length || 0} supir</Badge></td>
+                  <td className="px-5 py-4">
+                    <div className="flex gap-2">
+                      <Link className="rounded-[8px] bg-[#242424] px-3 py-2 text-[12px] font-black text-[#9ccfff]" to={`/kebun/${kebun.kodeKebun}`}>
                         Detail
                       </Link>
-                      <Link
-                        to={`/kebun/${kebun.kodeKebun}/edit`}
-                        className="text-yellow-600 hover:text-yellow-800 text-sm font-medium"
-                      >
-                        Edit
-                      </Link>
-                      <button
-                        onClick={() => handleDelete(kebun.kodeKebun)}
-                        disabled={deleteLoading === kebun.kodeKebun}
-                        className="text-red-600 hover:text-red-800 text-sm font-medium disabled:opacity-50"
-                      >
-                        {deleteLoading === kebun.kodeKebun ? 'Menghapus...' : 'Hapus'}
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+                      {isAdmin && (
+                        <>
+                          <Link className="rounded-[8px] bg-[#242424] px-3 py-2 text-[12px] font-black text-[#fbbf24]" to={`/kebun/${kebun.kodeKebun}/edit`}>
+                            Edit
+                          </Link>
+                          <button className="rounded-[8px] bg-[#351717] px-3 py-2 text-[12px] font-black text-red-200 disabled:opacity-50" disabled={deleting === kebun.kodeKebun} type="button" onClick={() => handleDelete(kebun.kodeKebun)}>
+                            {deleting === kebun.kodeKebun ? '...' : 'Hapus'}
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
     </div>
   );
 }

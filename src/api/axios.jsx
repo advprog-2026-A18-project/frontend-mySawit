@@ -1,7 +1,10 @@
 import axios from 'axios';
 
-const authApiBaseURL = import.meta.env.VITE_AUTH_API_BASE_URL || 'http://localhost:8080/auth-service';
-const plantationApiBaseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8082/api';
+const gatewayBaseURL = import.meta.env.VITE_GATEWAY_BASE_URL || 'http://localhost:8080';
+const authApiBaseURL = import.meta.env.VITE_AUTH_API_BASE_URL || `${gatewayBaseURL}/auth-service`;
+const kebunApiBaseURL = import.meta.env.VITE_KEBUN_API_BASE_URL || `${gatewayBaseURL}/manajemen-kebun-sawit-service/api`;
+const panenApiBaseURL = import.meta.env.VITE_PANEN_API_BASE_URL || `${gatewayBaseURL}/manajemen-hasil-panen-sawit-service/api`;
+const pengirimanApiBaseURL = import.meta.env.VITE_PENGIRIMAN_API_BASE_URL || `${gatewayBaseURL}/pengiriman-hasil-panen-sawit-service/api`;
 const AUTH_USER_KEY = 'authUser';
 
 const publicAuthPaths = ['/auth/login', '/auth/register', '/auth/google', '/auth/refresh', '/auth/logout'];
@@ -34,7 +37,7 @@ const refreshClient = axios.create({
 });
 
 const api = axios.create({
-  baseURL: plantationApiBaseURL,
+  baseURL: kebunApiBaseURL,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -47,8 +50,24 @@ const authApi = axios.create({
   },
 });
 
+const panenApi = axios.create({
+  baseURL: panenApiBaseURL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+const pengirimanApi = axios.create({
+  baseURL: pengirimanApiBaseURL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
 api.interceptors.request.use(attachAccessToken);
 authApi.interceptors.request.use(attachAccessToken);
+panenApi.interceptors.request.use(attachAccessToken);
+pengirimanApi.interceptors.request.use(attachAccessToken);
 
 let refreshPromise = null;
 
@@ -82,7 +101,10 @@ const handleAuthError = async (error) => {
       ...error.config.headers,
       Authorization: `Bearer ${accessToken}`,
     };
-    return error.config.baseURL === plantationApiBaseURL ? api(error.config) : authApi(error.config);
+    if (error.config.baseURL === authApiBaseURL) return authApi(error.config);
+    if (error.config.baseURL === panenApiBaseURL) return panenApi(error.config);
+    if (error.config.baseURL === pengirimanApiBaseURL) return pengirimanApi(error.config);
+    return api(error.config);
   } catch (refreshError) {
     clearAuthData();
     return Promise.reject(refreshError);
@@ -91,6 +113,8 @@ const handleAuthError = async (error) => {
 
 api.interceptors.response.use((response) => response, handleAuthError);
 authApi.interceptors.response.use((response) => response, handleAuthError);
+panenApi.interceptors.response.use((response) => response, handleAuthError);
+pengirimanApi.interceptors.response.use((response) => response, handleAuthError);
 
 export const unwrapApiData = (response) => response.data?.data ?? response.data;
 
@@ -138,5 +162,26 @@ export const unassignMandor = (kode, target) => api.delete(`/kebun/${kode}/mando
 // Supir
 export const assignSupir = (kode, supirId, namaSupir) => api.post(`/kebun/${kode}/supir`, { supirId, namaSupir });
 export const unassignSupir = (kode, supirId, target) => api.delete(`/kebun/${kode}/supir/${supirId}`, { params: { target } });
+
+// Panen API
+export const getPanenList = (params) => panenApi.get('/panen', { params });
+export const getPanenDetail = (id) => panenApi.get(`/panen/${id}`);
+export const createPanen = (data) => panenApi.post('/panen', data);
+export const approvePanen = (id, data) =>
+  panenApi.patch(`/panen/${id}/approval`, data);
+
+// Pengiriman API
+export const getPengirimanList = (params) => pengirimanApi.get('/pengiriman', { params });
+export const createPengiriman = (mandorId, data) => pengirimanApi.post('/pengiriman', data, { params: { mandorId } });
+export const updatePengirimanStatus = (id, supirId, status) =>
+  pengirimanApi.put(`/pengiriman/${id}/status`, { status }, { params: { supirId } });
+export const getPengirimanBySupir = (params) => pengirimanApi.get('/pengiriman/supir', { params });
+export const getPengirimanByMandor = (params) => pengirimanApi.get('/pengiriman/mandor', { params });
+export const getSupirSatuKebun = (mandorId, params) =>
+  pengirimanApi.get(`/pengiriman/mandor/${mandorId}/supir`, { params });
+export const reviewPengirimanByMandor = (id, mandorId, data) =>
+  pengirimanApi.put(`/pengiriman/${id}/review/mandor`, data, { params: { mandorId } });
+export const getPengirimanDisetujuiMandor = (params) => pengirimanApi.get('/pengiriman/admin/disetujui', { params });
+export const reviewPengirimanByAdmin = (id, data) => pengirimanApi.put(`/pengiriman/${id}/review/admin`, data);
 
 export default api;
