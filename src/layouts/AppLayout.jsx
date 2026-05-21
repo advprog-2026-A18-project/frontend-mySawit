@@ -27,6 +27,7 @@ const moduleIcon = {
   profile: 'profile',
   mandor: 'harvest',
   internal: 'internal',
+  grpc: 'internal',
 };
 
 function Icon({ name, className = 'h-5 w-5' }) {
