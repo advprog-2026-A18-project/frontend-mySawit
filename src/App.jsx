@@ -5,9 +5,12 @@ import Users from './modules/auth/pages/Users';
 import Profile from './modules/auth/pages/Profile';
 import Bawahan from './modules/mandor/pages/Bawahan';
 import InternalUsers from './modules/internal/pages/InternalUsers';
+import GrpcIntegrations from './modules/internal/pages/GrpcIntegrations';
 import KebunList from './modules/manajemen_kebun_sawit/pages/KebunList';
 import KebunForm from './modules/manajemen_kebun_sawit/pages/KebunForm';
 import KebunDetail from './modules/manajemen_kebun_sawit/pages/KebunDetail';
+import PanenPage from './modules/panen/pages/PanenPage';
+import PengirimanPage from './modules/pengiriman/pages/PengirimanPage';
 import AppLayout from './layouts/AppLayout';
 import Dashboard from './modules/shared/pages/Dashboard';
 import ModulePlaceholder from './modules/shared/pages/ModulePlaceholder';
@@ -72,6 +75,14 @@ function App() {
               </RoleRoute>
             )}
           />
+          <Route
+            path="/internal/grpc"
+            element={(
+              <RoleRoute roles={[ROLES.ADMIN]}>
+                <GrpcIntegrations />
+              </RoleRoute>
+            )}
+          />
 
           <Route
             path="/kebun"
@@ -110,12 +121,7 @@ function App() {
             path="/panen"
             element={
               <RoleRoute roles={[ROLES.BURUH, ROLES.MANDOR]}>
-                <ModulePlaceholder
-                  title="Harvest Reporting"
-                  eyebrow="Buruh Portal"
-                  description="Pelaporan hasil panen, bukti lapangan, approval mandor, rejection reason, dan riwayat panen."
-                  checklist={['Buruh submit hasil panen', 'Mandor approval/rejection', 'Filter tanggal dan status']}
-                />
+                <PanenPage />
               </RoleRoute>
             }
           />
@@ -123,12 +129,7 @@ function App() {
             path="/pengiriman"
             element={
               <RoleRoute roles={[ROLES.SUPIR, ROLES.ADMIN, ROLES.MANDOR]}>
-                <ModulePlaceholder
-                  title="Active Transport Manifest"
-                  eyebrow="Logistics"
-                  description="Assignment supir, tracking status pengiriman, dan approval hasil pengiriman."
-                  checklist={['Assign supir', 'Status Memuat/Mengirim/Tiba', 'Approval dan rejection mandor/admin']}
-                />
+                <PengirimanPage />
               </RoleRoute>
             }
           />
@@ -143,16 +144,6 @@ function App() {
                   checklist={['Payroll pending/accepted/rejected', 'Wallet SawitDollar', 'Payment gateway sandbox']}
                 />
               </RoleRoute>
-            }
-          />
-          <Route
-            path="/notifikasi"
-            element={
-              <ModulePlaceholder
-                title="Notifikasi"
-                description="Base page untuk inbox notifikasi, broadcast admin, dan event notification antarmodul."
-                checklist={['Unread/read notification', 'Broadcast admin', 'Event-based notification']}
-              />
             }
           />
         </Route>
