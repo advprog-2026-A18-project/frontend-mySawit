@@ -11,6 +11,7 @@ import KebunForm from './modules/manajemen_kebun_sawit/pages/KebunForm';
 import KebunDetail from './modules/manajemen_kebun_sawit/pages/KebunDetail';
 import PanenPage from './modules/panen/pages/PanenPage';
 import PengirimanPage from './modules/pengiriman/pages/PengirimanPage';
+import PembayaranPage from './modules/pembayaran/pages/PembayaranPage';
 import AppLayout from './layouts/AppLayout';
 import Dashboard from './modules/shared/pages/Dashboard';
 import ModulePlaceholder from './modules/shared/pages/ModulePlaceholder';
@@ -137,12 +138,7 @@ function App() {
             path="/pembayaran"
             element={
               <RoleRoute roles={[ROLES.ADMIN]}>
-                <ModulePlaceholder
-                  title="Payment & Payroll Config"
-                  eyebrow="Financials"
-                  description="Payroll, wallet, konfigurasi upah, dan approval pembayaran."
-                  checklist={['Payroll pending/accepted/rejected', 'Wallet SawitDollar', 'Payment gateway sandbox']}
-                />
+                <PembayaranPage />
               </RoleRoute>
             }
           />
