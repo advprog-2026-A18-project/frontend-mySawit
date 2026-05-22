@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const gatewayBaseURL = import.meta.env.VITE_GATEWAY_BASE_URL || 'http://localhost:8080';
+const gatewayBaseURL = import.meta.env.VITE_GATEWAY_BASE_URL;
 const authApiBaseURL = import.meta.env.VITE_AUTH_API_BASE_URL || `${gatewayBaseURL}/auth-service`;
 const kebunApiBaseURL = import.meta.env.VITE_KEBUN_API_BASE_URL || `${gatewayBaseURL}/manajemen-kebun-sawit-service/api`;
 const panenApiBaseURL = import.meta.env.VITE_PANEN_API_BASE_URL || `${gatewayBaseURL}/manajemen-hasil-panen-sawit-service/api`;
