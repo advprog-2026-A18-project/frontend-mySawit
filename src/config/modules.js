@@ -37,7 +37,7 @@ export const appModules = [
     id: 'pembayaran',
     label: 'Financials',
     path: '/pembayaran',
-    status: 'base',
+    status: 'ready',
     description: 'Payroll, wallet, dan konfigurasi upah.',
     roles: [ROLES.ADMIN],
   },

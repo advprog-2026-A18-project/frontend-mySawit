@@ -5,6 +5,7 @@ const authApiBaseURL = import.meta.env.VITE_AUTH_API_BASE_URL || `${gatewayBaseU
 const kebunApiBaseURL = import.meta.env.VITE_KEBUN_API_BASE_URL || `${gatewayBaseURL}/manajemen-kebun-sawit-service/api`;
 const panenApiBaseURL = import.meta.env.VITE_PANEN_API_BASE_URL || `${gatewayBaseURL}/manajemen-hasil-panen-sawit-service/api`;
 const pengirimanApiBaseURL = import.meta.env.VITE_PENGIRIMAN_API_BASE_URL || `${gatewayBaseURL}/pengiriman-hasil-panen-sawit-service/api`;
+const pembayaranApiBaseURL = import.meta.env.VITE_PEMBAYARAN_API_BASE_URL || `${gatewayBaseURL}/pembayaran-service/api`;
 const AUTH_USER_KEY = 'authUser';
 
 const publicAuthPaths = ['/auth/login', '/auth/register', '/auth/google', '/auth/refresh', '/auth/logout'];
@@ -28,6 +29,7 @@ const clearAuthData = () => {
   localStorage.removeItem('refreshToken');
   localStorage.removeItem(AUTH_USER_KEY);
 };
+
 
 const refreshClient = axios.create({
   baseURL: authApiBaseURL,
@@ -64,10 +66,18 @@ const pengirimanApi = axios.create({
   },
 });
 
+const pembayaranApi = axios.create({
+  baseURL: pembayaranApiBaseURL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
 api.interceptors.request.use(attachAccessToken);
 authApi.interceptors.request.use(attachAccessToken);
 panenApi.interceptors.request.use(attachAccessToken);
 pengirimanApi.interceptors.request.use(attachAccessToken);
+pembayaranApi.interceptors.request.use(attachAccessToken);
 
 let refreshPromise = null;
 
@@ -104,6 +114,7 @@ const handleAuthError = async (error) => {
     if (error.config.baseURL === authApiBaseURL) return authApi(error.config);
     if (error.config.baseURL === panenApiBaseURL) return panenApi(error.config);
     if (error.config.baseURL === pengirimanApiBaseURL) return pengirimanApi(error.config);
+    if (error.config.baseURL === pembayaranApiBaseURL) return pembayaranApi(error.config);
     return api(error.config);
   } catch (refreshError) {
     clearAuthData();
@@ -115,6 +126,7 @@ api.interceptors.response.use((response) => response, handleAuthError);
 authApi.interceptors.response.use((response) => response, handleAuthError);
 panenApi.interceptors.response.use((response) => response, handleAuthError);
 pengirimanApi.interceptors.response.use((response) => response, handleAuthError);
+pembayaranApi.interceptors.response.use((response) => response, handleAuthError);
 
 export const unwrapApiData = (response) => response.data?.data ?? response.data;
 
@@ -185,3 +197,15 @@ export const getPengirimanDisetujuiMandor = (params) => pengirimanApi.get('/peng
 export const reviewPengirimanByAdmin = (id, data) => pengirimanApi.put(`/pengiriman/${id}/review/admin`, data);
 
 export default api;
+
+// Pembayaran API
+export const getAllPayrolls = (params) => pembayaranApi.get('/pembayaran/admin/payrolls', { params });
+export const getPayrolls = (params) => pembayaranApi.get('/pembayaran/payrolls', { params });
+export const getWallet = (ownerId) => pembayaranApi.get(`/pembayaran/wallets/${ownerId}`);
+export const getTransactions = (params) => pembayaranApi.get('/pembayaran/transactions', { params });
+export const acceptPayroll = (payrollId) => pembayaranApi.post(`/pembayaran/admin/payrolls/${payrollId}/accept`);
+export const rejectPayroll = (payrollId, rejectionReason) =>
+  pembayaranApi.post(`/pembayaran/admin/payrolls/${payrollId}/reject`, { rejectionReason });
+export const payPayroll = (payrollId) => pembayaranApi.post(`/pembayaran/admin/payrolls/${payrollId}/pay`);
+export const getPayrollRates = () => pembayaranApi.get('/pembayaran/admin/rates');
+export const updatePayrollRates = (data) => pembayaranApi.put('/pembayaran/admin/rates', data);

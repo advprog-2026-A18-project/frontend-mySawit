@@ -46,6 +46,7 @@ const toneClass = {
 const pageContent = (payload) => (Array.isArray(payload) ? payload : payload?.content || []);
 const totalElements = (payload) => (Array.isArray(payload) ? payload.length : payload?.totalElements ?? pageContent(payload).length);
 const getDate = (item) => item.tanggalPengiriman?.slice(0, 10) || item.tanggalPanen || '-';
+const sameId = (left, right) => left && right && String(left) === String(right);
 const statusTone = (status) => (['APPROVED', 'DISETUJUI', 'Tiba di Tujuan'].includes(status) ? 'green' : ['REJECTED', 'DITOLAK'].includes(status) ? 'red' : 'amber');
 
 export default function Dashboard() {
@@ -116,6 +117,11 @@ export default function Dashboard() {
 
   useEffect(() => { loadDashboard(); }, [loadDashboard]);
 
+  const assignedKebuns = useMemo(() => {
+    if (user?.role !== 'MANDOR') return data.kebuns;
+    return data.kebuns.filter((item) => sameId(item.mandorId, user?.id));
+  }, [data.kebuns, user?.id, user?.role]);
+
   const metrics = useMemo(() => {
     const approvedPanen = data.panen.filter((item) => item.status === 'APPROVED').length;
     const pendingPanen = data.panen.filter((item) => item.status === 'REPORTED').length;
@@ -134,7 +140,7 @@ export default function Dashboard() {
     }
     if (user?.role === 'MANDOR') {
       return [
-        { label: 'Kebun Assigned', value: data.kebuns.filter((item) => item.mandorId === user?.id).length, helper: 'Area tanggung jawab mandor', tone: 'green' },
+        { label: 'Kebun Assigned', value: assignedKebuns.length, helper: 'Area tanggung jawab mandor', tone: 'green' },
         { label: 'Panen Pending', value: pendingPanen, helper: 'Laporan menunggu review', tone: pendingPanen ? 'amber' : 'green' },
         { label: 'Approved Panen', value: approvedPanen, helper: `${totalKgPanen} kg terlihat`, tone: 'blue' },
         { label: 'Pengiriman Aktif', value: activeShipments, helper: `${totalKgKirim} kg dalam daftar`, tone: activeShipments ? 'amber' : 'green' },
@@ -154,7 +160,7 @@ export default function Dashboard() {
       { label: 'Masih Berjalan', value: activeShipments, helper: 'Belum tiba tujuan', tone: activeShipments ? 'amber' : 'green' },
       { label: 'Menunggu Mandor', value: data.shipments.filter((item) => item.statusPersetujuanMandor === 'PENDING').length, helper: 'Perlu review mandor', tone: 'amber' },
     ];
-  }, [data, user?.id, user?.role]);
+  }, [assignedKebuns.length, data, user?.role]);
 
   const recentActivity = useMemo(() => {
     const panenActivities = data.panen.map((item) => ({
@@ -178,7 +184,7 @@ export default function Dashboard() {
       .slice(0, 6);
   }, [data.panen, data.shipments]);
 
-  const currentKebun = data.kebuns[0];
+  const currentKebun = user?.role === 'MANDOR' ? assignedKebuns[0] : data.kebuns[0];
 
   return (
     <div className="space-y-8">
@@ -236,10 +242,10 @@ export default function Dashboard() {
                 Current View
               </p>
               <p className="mt-1 text-[18px] font-black text-[#f4f4f4]">
-                {currentKebun?.namaKebun || (loading ? 'Memuat data...' : 'Belum ada kebun')}
+                {currentKebun?.namaKebun || (loading ? 'Memuat data...' : user?.role === 'MANDOR' ? 'Belum ada kebun assigned' : 'Belum ada kebun')}
               </p>
               <p className="mt-1 text-[12px] font-bold text-[#cbd6c9]">
-                {currentKebun ? `${currentKebun.kodeKebun} · ${currentKebun.luasHektare} Ha` : 'Tambahkan data kebun untuk memunculkan area.'}
+                {currentKebun ? `${currentKebun.kodeKebun} · ${currentKebun.luasHektare} Ha` : user?.role === 'MANDOR' ? 'Admin perlu assign kebun ke akun mandor ini.' : 'Tambahkan data kebun untuk memunculkan area.'}
               </p>
             </div>
             <div className="absolute left-1/2 top-1/2 flex h-16 w-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-[10px] border-[#287d49] bg-[#52ef8b] text-[13px] font-black text-[#06120b]">
