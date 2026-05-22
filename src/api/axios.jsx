@@ -6,7 +6,7 @@ const kebunApiBaseURL = import.meta.env.VITE_KEBUN_API_BASE_URL || `${gatewayBas
 const panenApiBaseURL = import.meta.env.VITE_PANEN_API_BASE_URL || `${gatewayBaseURL}/manajemen-hasil-panen-sawit-service/api`;
 const pengirimanApiBaseURL = import.meta.env.VITE_PENGIRIMAN_API_BASE_URL || `${gatewayBaseURL}/pengiriman-hasil-panen-sawit-service/api`;
 const pembayaranApiBaseURL = import.meta.env.VITE_PEMBAYARAN_API_BASE_URL || `${gatewayBaseURL}/pembayaran-service/api`;
-const AUTH_USER_KEY = 'authUser';
+const AUTH_USER_KEY = 'authUser'; 
 
 const publicAuthPaths = ['/auth/login', '/auth/register', '/auth/google', '/auth/refresh', '/auth/logout'];
 
