@@ -209,3 +209,7 @@ export const rejectPayroll = (payrollId, rejectionReason) =>
 export const payPayroll = (payrollId) => pembayaranApi.post(`/pembayaran/admin/payrolls/${payrollId}/pay`);
 export const getPayrollRates = () => pembayaranApi.get('/pembayaran/admin/rates');
 export const updatePayrollRates = (data) => pembayaranApi.put('/pembayaran/admin/rates', data);
+export const createAdminWalletTopUp = (amount) => pembayaranApi.post('/pembayaran/admin/wallet/top-up', { amount });
+export const getAdminWalletTopUps = (params) => pembayaranApi.get('/pembayaran/admin/wallet/top-up', { params });
+export const confirmAdminWalletTopUp = (topUpRequestId) =>
+  pembayaranApi.post(`/pembayaran/admin/wallet/top-up/${topUpRequestId}/confirm`);
