@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { getMyProfile, updateMyProfile, unwrapApiData } from '../../../api/axios';
+import { getMyProfile, getWallet, updateMyProfile, unwrapApiData } from '../../../api/axios';
 import { persistAuthSession } from '../authStorage';
 
 const inputClass =
@@ -12,22 +12,55 @@ const roleBadge = {
   SUPIR: 'bg-[#1f0a16] text-[#f472b6] border-[#2f0a20]',
 };
 
+const money = new Intl.NumberFormat('id-ID', {
+  style: 'currency',
+  currency: 'IDR',
+  maximumFractionDigits: 0,
+});
+
+const resolveWalletOwnerId = (user) => {
+  if (!user) return null;
+  if (user.role === 'ADMIN') return 'admin-default';
+  return user.id || user.userId || null;
+};
+
 export default function Profile() {
   const [profile, setProfile] = useState(null);
+  const [wallet, setWallet] = useState(null);
+  const [walletStatus, setWalletStatus] = useState('loading');
   const [form, setForm] = useState({ fullname: '', username: '' });
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState(null);
 
   const fetchProfile = useCallback(async () => {
     setLoading(true);
+    setWalletStatus('loading');
     try {
       const response = await getMyProfile();
       const data = unwrapApiData(response);
       setProfile(data);
       setForm({ fullname: data?.fullname || '', username: data?.username || '' });
       setMessage(null);
+
+      const walletOwnerId = resolveWalletOwnerId(data);
+      if (!walletOwnerId) {
+        setWallet(null);
+        setWalletStatus('missing-owner');
+        return;
+      }
+
+      try {
+        const walletResponse = await getWallet(walletOwnerId);
+        setWallet(unwrapApiData(walletResponse));
+        setWalletStatus('ready');
+      } catch {
+        setWallet(null);
+        setWalletStatus('not-found');
+      }
     } catch (error) {
       setMessage({ type: 'error', text: error.response?.data?.message || 'Gagal mengambil profil.' });
+      setWallet(null);
+      setWalletStatus('error');
     } finally {
       setLoading(false);
     }
@@ -56,6 +89,7 @@ export default function Profile() {
   };
 
   const roleStyle = roleBadge[profile?.role] || 'bg-[#1a1a1a] text-[#8a9a8e] border-[#2a2a2a]';
+  const walletOwnerId = resolveWalletOwnerId(profile);
 
   return (
     <div className="space-y-5">
@@ -92,6 +126,37 @@ export default function Profile() {
         </div>
       )}
 
+      {/* Wallet balance */}
+      <section className="overflow-hidden rounded-[8px] border border-[#255b39] bg-[#07110b]">
+        <div className="grid gap-0 lg:grid-cols-[1.2fr_0.8fr]">
+          <div className="p-6">
+            <p className="font-mono text-[11px] font-black uppercase tracking-[0.22em] text-[#52ef8b]">
+              Wallet Balance
+            </p>
+            <h2 className="mt-2 text-3xl font-black text-white">
+              {walletStatus === 'loading' && loading
+                ? 'Memuat saldo...'
+                : money.format(Number(wallet?.balance || 0))}
+            </h2>
+            <p className="mt-3 max-w-2xl text-[13px] font-semibold leading-6 text-[#8a9a8e]">
+              {walletStatus === 'ready'
+                ? 'Saldo wallet dari modul Manajemen Pembayaran untuk akun ini.'
+                : 'Wallet akun ini belum tersedia di modul pembayaran atau belum pernah menerima payroll.'}
+            </p>
+          </div>
+          <div className="border-t border-[#163522] bg-[#0b1b10] p-6 lg:border-l lg:border-t-0">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-[#3a5c42]">Owner ID</p>
+            <p className="mt-2 break-all font-mono text-[13px] font-bold text-[#d8e7d6]">
+              {wallet?.ownerId || walletOwnerId || '—'}
+            </p>
+            <p className="mt-4 text-[10px] font-bold uppercase tracking-widest text-[#3a5c42]">Owner Role</p>
+            <p className="mt-2 text-[13px] font-black text-[#52ef8b]">
+              {wallet?.ownerRole || profile?.role || '—'}
+            </p>
+          </div>
+        </div>
+      </section>
+
       <div className="grid gap-5 lg:grid-cols-[1fr_1.2fr]">
         {/* Account details */}
         <div className="rounded-[8px] border border-[#303030] bg-[#171717] p-5">
@@ -99,6 +164,7 @@ export default function Profile() {
           <h2 className="text-[15px] font-black text-white">Informasi</h2>
           <dl className="mt-5 space-y-4">
             {[
+              { label: 'User ID', value: profile?.id || profile?.userId, mono: true },
               { label: 'Email', value: profile?.email, mono: true },
               { label: 'Role', value: profile?.role },
               { label: 'Mandor', value: profile?.namaMandor },
